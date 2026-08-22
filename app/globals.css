@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&display=swap");
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #eef1f6;
+  font-family: "Inter", system-ui, sans-serif;
+  color: #16294f;
+}
+
+.font-display {
+  font-family: "Archivo Black", "Arial Black", sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #16294f;
+  border-radius: 8px;
+}

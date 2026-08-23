@@ -92,6 +92,28 @@ function UploadForm({ onLogout }: { onLogout: () => void }) {
   const [parsing, setParsing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
+  const [reports, setReports] = useState<any[]>([]);
+  const [loadingReports, setLoadingReports] = useState(true);
+  const [editingReport, setEditingReport] = useState<any | null>(null);
+
+  const loadReports = async () => {
+    setLoadingReports(true);
+
+    const { data, error } = await supabase
+        .from("reports")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+    if (!error) {
+      setReports(data || []);
+    }
+
+    setLoadingReports(false);
+  };
+
+  useEffect(() => {
+    loadReports();
+  }, []);
 
   // editable fields, pre-filled from parsing
   const [state, setState] = useState("");
@@ -270,6 +292,178 @@ function UploadForm({ onLogout }: { onLogout: () => void }) {
               {saving ? "Publishing…" : "Publish to Website"}
             </button>
           </div>
+        )}
+      </div>
+      {editingReport && (
+          <div className="bg-white rounded-2xl border border-black/5 p-6 mt-6">
+            <h2 className="font-display text-xl text-navy mb-4">
+              Edit Report
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                  value={editingReport.cm_name || ""}
+                  onChange={(e) =>
+                      setEditingReport({
+                        ...editingReport,
+                        cm_name: e.target.value,
+                      })
+                  }
+                  placeholder="CM Name"
+                  className="px-4 py-2 rounded-lg border border-black/10"
+              />
+
+              <input
+                  value={editingReport.state || ""}
+                  onChange={(e) =>
+                      setEditingReport({
+                        ...editingReport,
+                        state: e.target.value,
+                      })
+                  }
+                  placeholder="State"
+                  className="px-4 py-2 rounded-lg border border-black/10"
+              />
+
+              <input
+                  value={editingReport.party || ""}
+                  onChange={(e) =>
+                      setEditingReport({
+                        ...editingReport,
+                        party: e.target.value,
+                      })
+                  }
+                  placeholder="Party"
+                  className="px-4 py-2 rounded-lg border border-black/10"
+              />
+
+              <input
+                  value={editingReport.grade || ""}
+                  onChange={(e) =>
+                      setEditingReport({
+                        ...editingReport,
+                        grade: e.target.value,
+                      })
+                  }
+                  placeholder="Grade"
+                  className="px-4 py-2 rounded-lg border border-black/10"
+              />
+
+              <input
+                  value={editingReport.overall_score ?? ""}
+                  onChange={(e) =>
+                      setEditingReport({
+                        ...editingReport,
+                        overall_score: e.target.value,
+                      })
+                  }
+                  placeholder="Overall Score"
+                  className="px-4 py-2 rounded-lg border border-black/10"
+              />
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button
+                  onClick={async () => {
+                    const { id, cm_name, state, party, grade, overall_score } =
+                        editingReport;
+
+                    const { error } = await supabase
+                        .from("reports")
+                        .update({
+                          cm_name,
+                          state,
+                          party,
+                          grade,
+                          overall_score: Number(overall_score),
+                        })
+                        .eq("id", id);
+
+                    if (error) {
+                      setStatus(`Update failed: ${error.message}`);
+                      return;
+                    }
+
+                    setStatus("Report updated successfully.");
+                    setEditingReport(null);
+                    loadReports();
+                  }}
+                  className="px-4 py-2 rounded-lg bg-gold text-navy font-semibold"
+              >
+                Save Changes
+              </button>
+
+              <button
+                  onClick={() => setEditingReport(null)}
+                  className="px-4 py-2 rounded-lg border border-black/10"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+      )}
+      <div className="bg-white rounded-2xl border border-black/5 p-6 mt-6">
+        <h2 className="font-display text-xl text-navy mb-4">
+          Published Reports
+        </h2>
+
+        {loadingReports ? (
+            <p className="text-sm text-navy/60">Loading reports…</p>
+        ) : reports.length === 0 ? (
+            <p className="text-sm text-navy/60">No reports found.</p>
+        ) : (
+            <div className="space-y-3">
+              {reports.map((report) => (
+                  <div
+                      key={report.id}
+                      className="flex items-center justify-between border border-black/10 rounded-xl p-4"
+                  >
+                    <div>
+                      <p className="font-semibold text-navy">
+                        {report.cm_name}
+                      </p>
+                      <p className="text-sm text-navy/60">
+                        {report.state} · {report.grade} · {report.overall_score}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                          onClick={() => setEditingReport(report)}
+                          className="px-3 py-2 rounded-lg border border-black/10 text-sm"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                          onClick={async () => {
+                            const confirmed = window.confirm(
+                                `Delete "${report.cm_name}"? This cannot be undone.`
+                            );
+
+                            if (!confirmed) return;
+
+                            const { error } = await supabase
+                                .from("reports")
+                                .delete()
+                                .eq("id", report.id);
+
+                            if (error) {
+                              setStatus(`Delete failed: ${error.message}`);
+                              return;
+                            }
+
+                            setStatus("Report deleted successfully.");
+                            loadReports();
+                          }}
+                          className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+              ))}
+            </div>
         )}
       </div>
     </main>
